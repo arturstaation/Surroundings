@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Surroudings</string>
+    <string name="app_name">Surroundings_APP</string>
+    <string name="title_activity_maps">MapsActivity</string>
 </resources>
