@@ -1,6 +1,7 @@
 package com.example.surroundings_app;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -57,24 +58,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     private String[] permissoes = new String[]{
+
             Manifest.permission.ACCESS_FINE_LOCATION
     };
 
 
-    private Double latlugar;
-    private Double longlugar;
-    private String name;
     private LocationManager locationManager;
     private LocationListener locationListener;
-    private int jatemlat = 0;
-    private int jatemlong = 0;
-    private int jatemnome = 0;
 
-    private int jatemrating = 0;
 
-    private int primeiro = 1;
+    private Double latitude, longitude;
 
-    private Double latitude, longitude, rating;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,7 +82,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
     }
-
 
 
     @Override
@@ -119,24 +112,74 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.addMarker(new MarkerOptions().position(localUsuario).title("Meu local"));
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(localUsuario, 15));
 
-                String tiposLugares = "restaurant";
 
-                String[] listatipos = tiposLugares.split(",");
+                String[] listatipos = {"amusement_park","aquarium","art_gallery","bakery","bar","bowling_alley","car_rental",
+                "cafe","campground","casino","movie_theater", "museum","night_club","park","restaurant",
+                "shopping_mall","spa", "stadium", "tourist_attraction","travel_agency","zoo"};
 
-                Float [] listacores = {BitmapDescriptorFactory.HUE_YELLOW};
+
+                /*
+                "amusement_park","bowling_alley","movie_theater", --> Laranja
+
+                "aquarium","art_gallery", "museum","tourist_attraction","zoo","park","campground" --> Verde
+
+                "bakery","cafe","restaurant","spa" --> Azul
+
+                "car_rental","travel_agency" --> Amarelo
+
+                "bar","casino","night_club" --> Rose
+
+                "shopping_mall" --> Roxo
+
+                "stadium" --> Ciano
+                */
+
+                Float[] listacores = {
+
+                        BitmapDescriptorFactory.HUE_ORANGE, // laranja
+                        BitmapDescriptorFactory.HUE_GREEN, // verde
+                        BitmapDescriptorFactory.HUE_GREEN, // verde
+                        BitmapDescriptorFactory.HUE_BLUE, // azul
+                        BitmapDescriptorFactory.HUE_ROSE, //vermelho
+                        BitmapDescriptorFactory.HUE_ORANGE, // laranja
+                        BitmapDescriptorFactory.HUE_YELLOW, // amarelo
+                        BitmapDescriptorFactory.HUE_BLUE, // azul
+                        BitmapDescriptorFactory.HUE_GREEN, // verde
+                        BitmapDescriptorFactory.HUE_ROSE, //vermelho
+                        BitmapDescriptorFactory.HUE_ORANGE, // laranja
+                        BitmapDescriptorFactory.HUE_GREEN, // verde
+                        BitmapDescriptorFactory.HUE_ROSE, //vermelho
+                        BitmapDescriptorFactory.HUE_GREEN, // verde
+                        BitmapDescriptorFactory.HUE_BLUE, // azul
+                        BitmapDescriptorFactory.HUE_VIOLET, // roxo
+                        BitmapDescriptorFactory.HUE_BLUE, // azul
+                        BitmapDescriptorFactory.HUE_CYAN, //ciano
+                        BitmapDescriptorFactory.HUE_GREEN, // verde
+                        BitmapDescriptorFactory.HUE_YELLOW, // amarelo
+                        BitmapDescriptorFactory.HUE_GREEN, // verde
 
 
+
+                };
+
+/*
+                String[] listatipos = {"restaurant"};
+                Float[] listacores = {BitmapDescriptorFactory.HUE_BLUE};
+                */
+
+                final Handler handler2 = new Handler();
                 for (int i = 0; i < listatipos.length; i++) {
-                    addWayPoint(listatipos[i], listacores[i], mMap);
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    final int index = i;
+
+                    handler2.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            addWayPoint(listatipos[index], listacores[index], mMap);
+                        }
+                    }, 0);
+
                 }
-
             }
-
 
 
             @Override
@@ -173,11 +216,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
-
-
-
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -211,7 +249,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private void alertaValidacaoPermissao(){
+    private void alertaValidacaoPermissao() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Permissões Negadas");
@@ -230,12 +268,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-    public void onSwitchBusca(View view){
+    public void onSwitchBusca(View view) {
         setContentView(R.layout.activity_busca);
     }
 
 
-    public void onSwitchPrincipal(View view){
+    public void onSwitchPrincipal(View view) {
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -244,99 +282,110 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+
+    @SuppressLint("Wakelock")
     public void addWayPoint(String tipo, Float cor, GoogleMap mMap) {
 
-            primeiro = 1;
-            String urlString = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=AIzaSyATnax_UVJYV5JgrfptiKU7lDGRiidqTqY"
-                    + "&location=" + latitude + "," + longitude + "&radius=5000&type=" + tipo;
-            //Log.d("URL", urlString);
-            Handler handler = new Handler();
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
 
-                    try {
-                        URL url = new URL(urlString);
-                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                        connection.setRequestMethod("GET");
-                        connection.setConnectTimeout(5000);
+        final Double[] latlugar = new Double[1];
+        final Double[] longlugar = new Double[1];
+        final Double[] rating = new Double[1];
+        final String[] name = new String[1];
+        final int[] jatemlat = {0};
+        final int[] jatemlong = {0};
+        final int[] jatemnome = {0};
+        final int[] jatemrating = {0};
+        final int[] primeiro = {1};
+        String urlString = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=AIzaSyATnax_UVJYV5JgrfptiKU7lDGRiidqTqY"
+                + "&location=" + latitude + "," + longitude + "&radius=5000&type=" + tipo;
+        //Log.d("URL", urlString);
+        Handler handler = new Handler();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
 
-                        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                        StringBuilder response = new StringBuilder();
-                        String line;
+                try {
+                    URL url = new URL(urlString);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+                    connection.setConnectTimeout(5000);
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
 
 
-                        while ((line = reader.readLine()) != null) {
-                            if (line.contains("\"lat\" :") && jatemlat == 0) {
-                                String regex = "\"lat\" : (-?\\d+\\.\\d+)";
-                                Pattern pattern = Pattern.compile(regex);
-                                Matcher matcher = pattern.matcher(line);
+                    while ((line = reader.readLine()) != null) {
+                        if (line.contains("\"lat\" :") && jatemlat[0] == 0) {
+                            String regex = "\"lat\" : (-?\\d+\\.\\d+)";
+                            Pattern pattern = Pattern.compile(regex);
+                            Matcher matcher = pattern.matcher(line);
 
-                                if (matcher.find()) {
-                                    String numberString = matcher.group(1);
-                                    latlugar = Double.parseDouble(numberString);
-                                    jatemlat = 1;
-                                }
+                            if (matcher.find()) {
+                                String numberString = matcher.group(1);
+                                latlugar[0] = Double.parseDouble(numberString);
+                                jatemlat[0] = 1;
+                            }
 
-                            } else if (line.contains("\"lng\" :") && jatemlong == 0) {
-                                String regex = "\"lng\" : (-?\\d+\\.\\d+)";
-                                Pattern pattern = Pattern.compile(regex);
-                                Matcher matcher = pattern.matcher(line);
+                        } else if (line.contains("\"lng\" :") && jatemlong[0] == 0) {
+                            String regex = "\"lng\" : (-?\\d+\\.\\d+)";
+                            Pattern pattern = Pattern.compile(regex);
+                            Matcher matcher = pattern.matcher(line);
 
-                                if (matcher.find()) {
-                                    String numberString = matcher.group(1);
-                                    longlugar = Double.parseDouble(numberString);
-                                    jatemlong = 1;
-                                }
-                            } else if (line.contains("\"name\" :") && jatemnome == 0) {
-                                name = line.substring(line.indexOf(":") + 1).trim();
-                                jatemnome = 1;
+                            if (matcher.find()) {
+                                String numberString = matcher.group(1);
+                                longlugar[0] = Double.parseDouble(numberString);
+                                jatemlong[0] = 1;
+                            }
+                        } else if (line.contains("\"name\" :") && jatemnome[0] == 0) {
+                            name[0] = line.substring(line.indexOf(":") + 1).trim();
+                            jatemnome[0] = 1;
 
-                            } else if (line.contains("\"rating\" :") && jatemrating == 0) {
-                                String regex = "\"rating\" : ([0-5](\\.\\d{1,2})?)";
-                                Pattern pattern = Pattern.compile(regex);
-                                Matcher matcher = pattern.matcher(line);
+                        } else if (line.contains("\"rating\" :") && jatemrating[0] == 0) {
+                            String regex = "\"rating\" : ([0-5](\\.\\d{1,2})?)";
+                            Pattern pattern = Pattern.compile(regex);
+                            Matcher matcher = pattern.matcher(line);
 
-                                if (matcher.find()) {
-                                    String numberString = matcher.group(1);
-                                    rating = Double.parseDouble(numberString);
-                                    jatemrating = 1;
-                                }
+                            if (matcher.find()) {
+                                String numberString = matcher.group(1);
+                                rating[0] = Double.parseDouble(numberString);
+                                jatemrating[0] = 1;
+                            }
 
-                            } else if (line.contains("\"geometry\" :")) {
+                        } else if (line.contains("\"geometry\" :")) {
 
-                                if (primeiro == 1) {
-                                    primeiro = 0;
-                                } else {
-                                    if (rating >= 4.00) {
+                            if (primeiro[0] == 1) {
+                                primeiro[0] = 0;
+                            } else {
 
-                                        handler.post(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                // Atualize a interface do usuário aqui
-                                                mMap.addMarker(new MarkerOptions().position(new LatLng(latlugar, longlugar)).title(name).icon(BitmapDescriptorFactory.defaultMarker( cor )));
 
-                                            }
-                                        });
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        // Atualize a interface do usuário aqui
+                                        mMap.addMarker(new MarkerOptions().position(new LatLng(latlugar[0], longlugar[0])).title(name[0]).icon(BitmapDescriptorFactory.defaultMarker(cor)));
 
-                                        jatemnome = 0;
-                                        jatemlong = 0;
-                                        jatemlat = 0;
-                                        jatemrating = 0;
                                     }
-                                }
+                                });
+
+                                jatemnome[0] = 0;
+                                jatemlong[0] = 0;
+                                jatemlat[0] = 0;
+                                jatemrating[0] = 0;
                             }
                         }
 
-
-                        reader.close();
-
-
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     }
+
+
+                    reader.close();
+
+
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            }).start();
-        }
+            }
+        }).start();
+    }
 
 }
