@@ -45,6 +45,8 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -117,100 +119,21 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.addMarker(new MarkerOptions().position(localUsuario).title("Meu local"));
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(localUsuario, 15));
 
-                primeiro = 1;
-                String urlString = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=AIzaSyATnax_UVJYV5JgrfptiKU7lDGRiidqTqY"
-                        + "&location=" + latitude + "," + longitude + "&radius=5000&type=restaurant";
-                //Log.d("URL", urlString);
-                Handler handler = new Handler();
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Coloque sua operação de rede ou outra tarefa demorada aqui
+                String tiposLugares = "restaurant";
 
-                        // Exemplo de chamada de rede
-                        try {
-                            URL url = new URL(urlString);
-                            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                            connection.setRequestMethod("GET");
+                String[] listatipos = tiposLugares.split(",");
 
-                            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                            StringBuilder response = new StringBuilder();
-                            String line;
+                Float [] listacores = {BitmapDescriptorFactory.HUE_YELLOW};
 
 
-                            while ((line = reader.readLine()) != null) {
-                                if(line.contains("\"lat\" :") && jatemlat == 0 ){
-                                    String regex = "\"lat\" : (-?\\d+\\.\\d+)";
-                                    Pattern pattern = Pattern.compile(regex);
-                                    Matcher matcher = pattern.matcher(line);
-
-                                    if (matcher.find()) {
-                                        String numberString = matcher.group(1);
-                                        latlugar = Double.parseDouble(numberString);
-                                        jatemlat = 1;
-                                    }
-
-                                }else if(line.contains("\"lng\" :") && jatemlong == 0) {
-                                    String regex = "\"lng\" : (-?\\d+\\.\\d+)";
-                                    Pattern pattern = Pattern.compile(regex);
-                                    Matcher matcher = pattern.matcher(line);
-
-                                    if (matcher.find()) {
-                                        String numberString = matcher.group(1);
-                                        longlugar = Double.parseDouble(numberString);
-                                        jatemlong = 1;
-                                    }
-                                }else if(line.contains("\"name\" :") && jatemnome == 0){
-                                    name = line.substring(line.indexOf(":") + 1).trim();
-                                    jatemnome = 1;
-
-                                }else if(line.contains("\"rating\" :") && jatemrating == 0){
-                                    String regex = "\"rating\" : ([0-5](\\.\\d{1,2})?)";
-                                    Pattern pattern = Pattern.compile(regex);
-                                    Matcher matcher = pattern.matcher(line);
-
-                                    if (matcher.find()) {
-                                        String numberString = matcher.group(1);
-                                        rating = Double.parseDouble(numberString);
-                                        jatemrating = 1;
-                                    }
-
-                                }
-                                else if(line.contains("\"geometry\" :")){
-
-                                    if(primeiro == 1){
-                                        primeiro = 0;
-                                    }
-                                    else {
-                                        if(rating >= 4.00){
-
-                                        handler.post(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                // Atualize a interface do usuário aqui
-                                                mMap.addMarker(new MarkerOptions().position(new LatLng(latlugar, longlugar)).title(name).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)));
-
-                                            }
-                                        });
-
-                                        jatemnome = 0;
-                                        jatemlong = 0;
-                                        jatemlat = 0;
-                                        jatemrating = 0;
-                                    }
-                                    }
-                                }
-                            }
-
-
-                            reader.close();
-
-
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
+                for (int i = 0; i < listatipos.length; i++) {
+                    addWayPoint(listatipos[i], listacores[i], mMap);
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
-                }).start();
+                }
 
             }
 
@@ -320,4 +243,100 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     }
+
+    public void addWayPoint(String tipo, Float cor, GoogleMap mMap) {
+
+            primeiro = 1;
+            String urlString = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=AIzaSyATnax_UVJYV5JgrfptiKU7lDGRiidqTqY"
+                    + "&location=" + latitude + "," + longitude + "&radius=5000&type=" + tipo;
+            //Log.d("URL", urlString);
+            Handler handler = new Handler();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+
+                    try {
+                        URL url = new URL(urlString);
+                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                        connection.setRequestMethod("GET");
+                        connection.setConnectTimeout(5000);
+
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                        StringBuilder response = new StringBuilder();
+                        String line;
+
+
+                        while ((line = reader.readLine()) != null) {
+                            if (line.contains("\"lat\" :") && jatemlat == 0) {
+                                String regex = "\"lat\" : (-?\\d+\\.\\d+)";
+                                Pattern pattern = Pattern.compile(regex);
+                                Matcher matcher = pattern.matcher(line);
+
+                                if (matcher.find()) {
+                                    String numberString = matcher.group(1);
+                                    latlugar = Double.parseDouble(numberString);
+                                    jatemlat = 1;
+                                }
+
+                            } else if (line.contains("\"lng\" :") && jatemlong == 0) {
+                                String regex = "\"lng\" : (-?\\d+\\.\\d+)";
+                                Pattern pattern = Pattern.compile(regex);
+                                Matcher matcher = pattern.matcher(line);
+
+                                if (matcher.find()) {
+                                    String numberString = matcher.group(1);
+                                    longlugar = Double.parseDouble(numberString);
+                                    jatemlong = 1;
+                                }
+                            } else if (line.contains("\"name\" :") && jatemnome == 0) {
+                                name = line.substring(line.indexOf(":") + 1).trim();
+                                jatemnome = 1;
+
+                            } else if (line.contains("\"rating\" :") && jatemrating == 0) {
+                                String regex = "\"rating\" : ([0-5](\\.\\d{1,2})?)";
+                                Pattern pattern = Pattern.compile(regex);
+                                Matcher matcher = pattern.matcher(line);
+
+                                if (matcher.find()) {
+                                    String numberString = matcher.group(1);
+                                    rating = Double.parseDouble(numberString);
+                                    jatemrating = 1;
+                                }
+
+                            } else if (line.contains("\"geometry\" :")) {
+
+                                if (primeiro == 1) {
+                                    primeiro = 0;
+                                } else {
+                                    if (rating >= 4.00) {
+
+                                        handler.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                // Atualize a interface do usuário aqui
+                                                mMap.addMarker(new MarkerOptions().position(new LatLng(latlugar, longlugar)).title(name).icon(BitmapDescriptorFactory.defaultMarker( cor )));
+
+                                            }
+                                        });
+
+                                        jatemnome = 0;
+                                        jatemlong = 0;
+                                        jatemlat = 0;
+                                        jatemrating = 0;
+                                    }
+                                }
+                            }
+                        }
+
+
+                        reader.close();
+
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+        }
+
 }
