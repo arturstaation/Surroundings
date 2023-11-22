@@ -7,48 +7,55 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
-import com.example.surroundings_app.Permissoes;
-import com.example.surroundings_app.R;
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AutocompletePrediction;
+import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
+import com.google.android.libraries.places.api.model.LocationBias;
+import com.google.android.libraries.places.api.model.RectangularBounds;
+import com.google.android.libraries.places.api.model.TypeFilter;
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsResponse;
+import com.google.android.libraries.places.api.net.PlacesClient;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,6 +75,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     private Double latitude, longitude;
+
+    // Buscar
+    private PlacesClient placesClient;
+    private AutocompleteSessionToken sessionToken;
+    private PlacesAdapter adapter;
+    private EditText edtSearch;
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -270,6 +284,98 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     public void onSwitchBusca(View view) {
         setContentView(R.layout.activity_busca);
+
+        Places.initialize(getApplicationContext(), "AIzaSyATnax_UVJYV5JgrfptiKU7lDGRiidqTqY");
+        placesClient = Places.createClient(this);
+        sessionToken = AutocompleteSessionToken.newInstance();
+
+        edtSearch = findViewById(R.id.edtSearch);
+        progressBar = findViewById(R.id.progressBar);
+        ListView listPlaces = findViewById(R.id.listPlaces);
+
+        progressBar.setVisibility(View.GONE);
+        adapter = new PlacesAdapter(this);
+        listPlaces.setAdapter(adapter);
+
+        edtSearch.setOnEditorActionListener((textView, i, keyEvent) -> {
+            if (i == EditorInfo.IME_ACTION_SEARCH) {
+                if (edtSearch.length() > 0) {
+                    searchPlaces();
+                }
+            }
+            return false;
+        });
+
+
+    }
+
+    private void searchPlaces(){
+        progressBar.setVisibility(View.VISIBLE);
+
+
+        final FindAutocompletePredictionsRequest newRequest = FindAutocompletePredictionsRequest
+                .builder()
+                .setSessionToken(sessionToken)
+                .setQuery(edtSearch.getText().toString())
+                .build();
+
+        placesClient.findAutocompletePredictions(newRequest).addOnSuccessListener(new OnSuccessListener<FindAutocompletePredictionsResponse>() {
+            @Override
+            public void onSuccess(FindAutocompletePredictionsResponse findAutocompletePredictionsResponse) {
+                List<AutocompletePrediction> predictions = findAutocompletePredictionsResponse.getAutocompletePredictions();
+                adapter.setPredictions(predictions);
+                progressBar.setVisibility(View.GONE);
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                if (e instanceof ApiException) {
+                    ApiException apiException = (ApiException) e;
+                    Log.e("MainActivity", "Place not found: " + apiException.getStatusCode());
+                }
+            }
+        });
+    }
+    private static class PlacesAdapter extends BaseAdapter {
+        private final List<AutocompletePrediction> predictions = new ArrayList<>();
+        private final Context context;
+
+        public PlacesAdapter(Context context) {
+            this.context = context;
+        }
+
+        public void setPredictions(List<AutocompletePrediction> predictions){
+            this.predictions.clear();
+            this.predictions.addAll(predictions);
+            notifyDataSetChanged();
+        }
+
+
+        @Override
+        public int getCount() {
+            return predictions.size();
+        }
+
+        @Override
+        public Object getItem(int i) {
+            return predictions.get(i);
+        }
+
+        @Override
+        public long getItemId(int i) {
+            return i;
+        }
+
+        @Override
+        public View getView(int i, View view, ViewGroup viewGroup) {
+            View v = LayoutInflater.from(context).inflate(R.layout.list_item_place, viewGroup, false);
+            TextView txtShortAddress = v.findViewById(R.id.txtShortAddress);
+            TextView txtLongAddress = v.findViewById(R.id.txtLongAddress);
+
+            txtShortAddress.setText(predictions.get(i).getPrimaryText(null));
+            txtLongAddress.setText(predictions.get(i).getSecondaryText(null));
+            return v;
+        }
     }
 
 
