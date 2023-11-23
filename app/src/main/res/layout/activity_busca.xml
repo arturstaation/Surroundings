@@ -15,16 +15,41 @@
         android:singleLine="true"
         android:imeOptions="actionSearch"
         android:hint="Enter keyword"/>
+
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_gravity="center"/>
 
     <ListView
         android:id="@+id/listPlaces"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginTop="16dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/image1"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_margin="8dp"
+            android:onClick="onSwitchPrincipal"
+            android:src="@android:drawable/ic_dialog_map" />
+
+        <ImageView
+            android:id="@+id/image2"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_margin="8dp"
+            android:src="@android:drawable/ic_menu_manage" />
+
+    </LinearLayout>
 
 </LinearLayout>

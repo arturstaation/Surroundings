@@ -2,11 +2,7 @@ package com.example.surroundings_app;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
-import android.content.res.Resources;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -26,18 +22,16 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -59,7 +53,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
+public abstract class MainActivity_backup extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
 
@@ -71,6 +65,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     String city;
 
+    Location atual;
+    FusedLocationProviderClient fusedLocationProviderClient;
     private LocationManager locationManager;
     private LocationListener locationListener;
 
@@ -95,197 +91,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+
+        //Validar permissões
         Permissoes.validarPermissoes(permissoes, this, 1);
 
+        fusedLocationProviderClient = (FusedLocationProviderClient) LocationServices.getFusedLocationProviderClient(this);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         initMap();
     }
 
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-
-        try {
-            boolean success = mMap.setMapStyle(
-                    MapStyleOptions.loadRawResourceStyle(this, R.raw.estilo)
-            );
-
-
-        } catch (Resources.NotFoundException e) {
-            Log.e("MapStyle", "Arquivo de estilo do mapa não encontrado.");
-        }
-
-        //Objeto responsável por gerenciar a localização do usuário
-        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
-        locationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-
-                latitude = location.getLatitude();
-                longitude = location.getLongitude();
-
-                LatLng localUsuario = new LatLng(latitude, longitude);
-                mMap.addMarker(new MarkerOptions().position(localUsuario).title("Meu local"));
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(localUsuario, 15));
-
-
-
-                city = getCityFromLocation(location.getLatitude(), location.getLongitude());
-                String[] listatipos = {"amusement_park","aquarium","art_gallery","bakery","bar","bowling_alley","car_rental",
-                "cafe","campground","casino","movie_theater", "museum","night_club","park","restaurant",
-                "shopping_mall","spa", "stadium", "tourist_attraction","travel_agency","zoo"};
-
-
-                /*
-                "amusement_park","bowling_alley","movie_theater", --> Laranja
-
-                "aquarium","art_gallery", "museum","tourist_attraction","zoo","park","campground" --> Verde
-
-                "bakery","cafe","restaurant","spa" --> Azul
-
-                "car_rental","travel_agency" --> Amarelo
-
-                "bar","casino","night_club" --> Rose
-
-                "shopping_mall" --> Roxo
-
-                "stadium" --> Ciano
-                */
-
-                Float[] listacores = {
-
-                        BitmapDescriptorFactory.HUE_ORANGE, // laranja
-                        BitmapDescriptorFactory.HUE_GREEN, // verde
-                        BitmapDescriptorFactory.HUE_GREEN, // verde
-                        BitmapDescriptorFactory.HUE_BLUE, // azul
-                        BitmapDescriptorFactory.HUE_ROSE, //vermelho
-                        BitmapDescriptorFactory.HUE_ORANGE, // laranja
-                        BitmapDescriptorFactory.HUE_YELLOW, // amarelo
-                        BitmapDescriptorFactory.HUE_BLUE, // azul
-                        BitmapDescriptorFactory.HUE_GREEN, // verde
-                        BitmapDescriptorFactory.HUE_ROSE, //vermelho
-                        BitmapDescriptorFactory.HUE_ORANGE, // laranja
-                        BitmapDescriptorFactory.HUE_GREEN, // verde
-                        BitmapDescriptorFactory.HUE_ROSE, //vermelho
-                        BitmapDescriptorFactory.HUE_GREEN, // verde
-                        BitmapDescriptorFactory.HUE_BLUE, // azul
-                        BitmapDescriptorFactory.HUE_VIOLET, // roxo
-                        BitmapDescriptorFactory.HUE_BLUE, // azul
-                        BitmapDescriptorFactory.HUE_CYAN, //ciano
-                        BitmapDescriptorFactory.HUE_GREEN, // verde
-                        BitmapDescriptorFactory.HUE_YELLOW, // amarelo
-                        BitmapDescriptorFactory.HUE_GREEN, // verde
-
-
-
-                };
-
-/*
-                String[] listatipos = {"restaurant"};
-                Float[] listacores = {BitmapDescriptorFactory.HUE_BLUE};
-                */
-
-                final Handler handler2 = new Handler();
-                for (int i = 0; i < listatipos.length; i++) {
-                    final int index = i;
-
-                    handler2.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            addWayPoint(listatipos[index], listacores[index], mMap);
-                        }
-                    }, 0);
-
-                }
-            }
-
-
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-
-            }
-
-            @Override
-            public void onProviderEnabled(String provider) {
-
-            }
-
-            @Override
-            public void onProviderDisabled(String provider) {
-
-            }
-        };
-
-        /*
-         * 1) Provedor da localização
-         * 2) Tempo mínimo entre atualizacões de localização (milesegundos)
-         * 3) Distancia mínima entre atualizacões de localização (metros)
-         * 4) Location listener (para recebermos as atualizações)
-         * */
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            locationManager.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    0,
-                    500,
-                    locationListener
-            );
-        }
-
-    }
-
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        for (int permissaoResultado : grantResults) {
-
-            //permission denied
-            if (permissaoResultado == PackageManager.PERMISSION_DENIED) {
-                //Alerta
-                alertaValidacaoPermissao();
-            } else if (permissaoResultado == PackageManager.PERMISSION_GRANTED) {
-                //Recuperar localizacao do usuario
-
-                /*
-                 * 1) Provedor da localização
-                 * 2) Tempo mínimo entre atualizacões de localização (milesegundos)
-                 * 3) Distancia mínima entre atualizacões de localização (metros)
-                 * 4) Location listener (para recebermos as atualizações)
-                 * */
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    locationManager.requestLocationUpdates(
-                            LocationManager.GPS_PROVIDER,
-                            0,
-                            0,
-                            locationListener
-                    );
-                }
-
-            }
-        }
-
-    }
-
-    private void alertaValidacaoPermissao() {
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Permissões Negadas");
-        builder.setMessage("Para utilizar o app é necessário aceitar as permissões");
-        builder.setCancelable(false);
-        builder.setPositiveButton("Confirmar", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                finish();
-            }
-        });
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
-
-    }
 
 
     public void onSwitchBusca(View view) {
